@@ -14,10 +14,6 @@ android {
     namespace = "com.pneumasoft.multitimer"
     compileSdk = 36
 
-    installation {
-        installOptions("-g", "-r")
-    }
-
     defaultConfig {
         applicationId = "com.pneumasoft.multitimer"
         minSdk = 24
@@ -66,8 +62,10 @@ android {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = "11"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_11)
+        }
     }
     buildFeatures {
         compose = true

@@ -30,7 +30,7 @@
             android:inputType="text"
             android:layout_marginBottom="16dp"/>
 
-        <!-- Time display -->
+        <!-- Time display preview -->
         <TextView
             android:id="@+id/timer_display_text"
             android:layout_width="match_parent"
@@ -38,59 +38,136 @@
             android:textSize="32sp"
             android:textStyle="bold"
             android:gravity="center"
-            android:text="00 h 00 m"
+            android:text="00h 00m 00s"
             android:layout_marginBottom="16dp"/>
 
-        <!-- Hours picker with increment/decrement buttons -->
-        <LinearLayout
+        <TableLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
             android:layout_gravity="center"
-            android:layout_marginBottom="24dp">
+            android:stretchColumns="1">
 
-            <ImageButton
-                android:id="@+id/hours_down_button"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@drawable/ic_time_decrease"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Decrease hours"/>
+            <!-- Hours row -->
+            <TableRow android:layout_marginBottom="8dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Hours"
+                    android:paddingEnd="16dp"
+                    android:layout_gravity="center_vertical"/>
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+                    <ImageButton
+                        android:id="@+id/hours_down_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_time_decrease"
+                        android:background="?attr/selectableItemBackgroundBorderless"/>
+                    <EditText
+                        android:id="@+id/hours_value"
+                        android:layout_width="60dp"
+                        android:layout_height="wrap_content"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:inputType="number"
+                        android:maxLength="2"
+                        android:selectAllOnFocus="true"
+                        android:text="00"
+                        android:background="@android:color/transparent"/>
+                    <ImageButton
+                        android:id="@+id/hours_up_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_time_increase"
+                        android:background="?attr/selectableItemBackgroundBorderless"/>
+                </LinearLayout>
+            </TableRow>
 
-            <TextView
-                android:id="@+id/hours_value"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:textSize="24sp"
-                android:textStyle="bold"
-                android:gravity="center"
-                android:minWidth="48dp"
-                android:text="00"/>
+            <!-- Minutes row -->
+            <TableRow android:layout_marginBottom="8dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Minutes"
+                    android:paddingEnd="16dp"
+                    android:layout_gravity="center_vertical"/>
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+                    <ImageButton
+                        android:id="@+id/minutes_down_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_time_decrease"
+                        android:background="?attr/selectableItemBackgroundBorderless"/>
+                    <EditText
+                        android:id="@+id/minutes_value"
+                        android:layout_width="60dp"
+                        android:layout_height="wrap_content"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:inputType="number"
+                        android:maxLength="2"
+                        android:selectAllOnFocus="true"
+                        android:text="00"
+                        android:background="@android:color/transparent"/>
+                    <ImageButton
+                        android:id="@+id/minutes_up_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_time_increase"
+                        android:background="?attr/selectableItemBackgroundBorderless"/>
+                </LinearLayout>
+            </TableRow>
 
-            <ImageButton
-                android:id="@+id/hours_up_button"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:src="@drawable/ic_time_increase"
-                android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Increase hours"/>
-        </LinearLayout>
+            <!-- Seconds row -->
+            <TableRow android:layout_marginBottom="8dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Seconds"
+                    android:paddingEnd="16dp"
+                    android:layout_gravity="center_vertical"/>
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center">
+                    <ImageButton
+                        android:id="@+id/seconds_down_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_time_decrease"
+                        android:background="?attr/selectableItemBackgroundBorderless"/>
+                    <EditText
+                        android:id="@+id/seconds_value"
+                        android:layout_width="60dp"
+                        android:layout_height="wrap_content"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:inputType="number"
+                        android:maxLength="2"
+                        android:selectAllOnFocus="true"
+                        android:text="00"
+                        android:background="@android:color/transparent"/>
+                    <ImageButton
+                        android:id="@+id/seconds_up_button"
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:src="@drawable/ic_time_increase"
+                        android:background="?attr/selectableItemBackgroundBorderless"/>
+                </LinearLayout>
+            </TableRow>
 
-        <!-- Minutes slider (using standard SeekBar) -->
-        <SeekBar
-            android:id="@+id/minutes_slider"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="59"
-            android:progress="0"
-            android:layout_marginBottom="8dp"/>
+        </TableLayout>
 
-        <TextView
-            android:id="@+id/minutes_value"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="16sp"
-            android:gravity="center"
-            android:text="00 minutes"/>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

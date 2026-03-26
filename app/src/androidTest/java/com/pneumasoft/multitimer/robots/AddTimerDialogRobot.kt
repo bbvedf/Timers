@@ -1,3 +1,6 @@
+// ✅ FULL FILE VERSION
+// Path: C:/local/Android/Timers/app/src/androidTest/java/com/pneumasoft/multitimer/robots/AddTimerDialogRobot.kt
+
 package com.pneumasoft.multitimer.robots
 
 import androidx.test.espresso.Espresso.onView
@@ -8,47 +11,44 @@ import com.pneumasoft.multitimer.R
 import org.hamcrest.Matchers.allOf
 
 class AddTimerDialogRobot : BaseRobot() {
-    
+
     fun enterName(name: String) {
         typeText(R.id.timer_name_edit, name)
     }
-    
+
     fun setHours(hours: Int) {
-        // Implementation: click UP 'hours' times
+        // 🔄 MODIFIED: Ahora usamos botones Up
         repeat(hours) {
-            tapView(R.id.hours_up_button)
-        }
-    }
-    
-    fun setMinutes(minutes: Int) {
-        // Set SeekBar progress using helper
-        onView(withId(R.id.minutes_slider)).perform(setProgress(minutes))
-    }
-    
-    fun tapAdd() {
-        onView(withText("Add")).perform(click())
-    }
-    
-    fun shouldStillBeOpen() {
-        onView(withId(R.id.timer_name_edit)).check(matches(isDisplayed()))
-    }
-    
-    // Helper ViewAction for SeekBar
-    private fun setProgress(progress: Int): androidx.test.espresso.ViewAction {
-        return object : androidx.test.espresso.ViewAction {
-            override fun getConstraints(): org.hamcrest.Matcher<android.view.View> {
-                return isAssignableFrom(android.widget.SeekBar::class.java)
-            }
-            override fun getDescription(): String {
-                return "Set SeekBar progress to $progress"
-            }
-            override fun perform(uiController: androidx.test.espresso.UiController?, view: android.view.View?) {
-                (view as android.widget.SeekBar).progress = progress
-            }
+            onView(withId(R.id.hours_up_button)).perform(click())
         }
     }
 
-    // Support block syntax
+    fun setMinutes(minutes: Int) {
+        // ❌ REMOVED: El 'minutes_slider' ya no existe
+        // 🔄 MODIFIED: Ahora usamos botones Up para minutos
+        repeat(minutes) {
+            onView(withId(R.id.minutes_up_button)).perform(click())
+        }
+    }
+
+    fun setSeconds(seconds: Int) {
+        // ✅ NEW: Añadido para completar la lógica de los botones actuales
+        repeat(seconds) {
+            onView(withId(R.id.seconds_up_button)).perform(click())
+        }
+    }
+
+    fun tapAdd() {
+        // En los diálogos de Android, el botón positivo a veces no tiene ID, se busca por texto
+        onView(withText("Add")).perform(click())
+    }
+
+    fun shouldStillBeOpen() {
+        onView(withId(R.id.timer_name_edit)).check(matches(isDisplayed()))
+    }
+
+    // ❌ REMOVED: setProgress ya no es necesario porque no hay SeekBar
+
     operator fun invoke(block: AddTimerDialogRobot.() -> Unit) {
         this.apply(block)
     }

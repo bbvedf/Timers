@@ -1,3 +1,9 @@
+// ✅ FULL FILE VERSION
+// Path: C:/local/Android/Timers/app/src/main/java/com/pneumasoft/multitimer/ui/adapter/TimerAdapter.kt
+
+package com.pneumasoft.multitimer.ui.adapter
+
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -34,22 +40,39 @@ class TimerAdapter(
             timerName.text = timer.name
             timerDisplay.text = formatTime(timer.remainingSeconds)
 
-            // Calculate seconds for the progress indicator
             val secondsValue = timer.remainingSeconds % 60
-
-            // Set the progress on the actual ProgressBar view
             secondsProgress.progress = secondsValue
 
-            // Update button icon based on timer state
+            // 🔄 MODIFICACIÓN: Lógica de botón Dinámico (Play / Pause / STOP)
             val isRunning = timer.isRunning
-            startPauseButton.setImageResource(
-                if (isRunning) R.drawable.ic_pause else R.drawable.ic_play
-            )
-            // ✅ Set content description for Accessibility and UI Tests
-            startPauseButton.contentDescription = if (isRunning) "Pause" else "Play"
+            val isFinished = timer.remainingSeconds <= 0 && isRunning
+
+            when {
+                isFinished -> {
+                    // 🚨 ESTADO: SONANDO (Alarma activa)
+                    startPauseButton.setImageResource(R.drawable.ic_stop) // Asegúrate de tener ic_stop
+                    startPauseButton.setColorFilter(Color.RED) // Ponlo rojo para que destaque
+                    startPauseButton.contentDescription = "Stop Alarm"
+                    timerDisplay.setTextColor(Color.RED) // Que el 00:00 parpadee o esté en rojo
+                }
+                isRunning -> {
+                    // 🟢 ESTADO: CORRIENDO
+                    startPauseButton.setImageResource(R.drawable.ic_pause)
+                    startPauseButton.setColorFilter(null)
+                    startPauseButton.contentDescription = "Pause"
+                    timerDisplay.setTextColor(Color.BLACK) // O el color por defecto de tu tema
+                }
+                else -> {
+                    // ⚪ ESTADO: PARADO / EDITANDO
+                    startPauseButton.setImageResource(R.drawable.ic_play)
+                    startPauseButton.setColorFilter(null)
+                    startPauseButton.contentDescription = "Play"
+                    timerDisplay.setTextColor(Color.BLACK)
+                }
+            }
 
             // Calculate and display expiration time
-            if (isRunning) {
+            if (isRunning && !isFinished) {
                 val expirationTimeText = calculateExpirationTime(timer.remainingSeconds)
                 timerExpirationTime.text = expirationTimeText
                 timerExpirationTime.visibility = View.VISIBLE
@@ -68,12 +91,10 @@ class TimerAdapter(
     private fun calculateExpirationTime(remainingSeconds: Int): String {
         val calendar = Calendar.getInstance()
         calendar.add(Calendar.SECOND, remainingSeconds)
-
         val formatter = SimpleDateFormat("HH:mm", Locale.getDefault())
         return formatter.format(calendar.time)
     }
 
-    // ✅ Format time to show m:ss or h:mm:ss to match test expectations
     private fun formatTime(seconds: Int): String {
         val hours = seconds / 3600
         val minutes = (seconds % 3600) / 60
@@ -88,7 +109,6 @@ class TimerAdapter(
     fun updateTimers(newTimers: List<TimerItem>) {
         val oldTimers = timers
         this.timers = newTimers
-        // Use DiffUtil to calculate the differences
         val diffResult = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
             override fun getOldListSize() = oldTimers.size
             override fun getNewListSize() = newTimers.size
@@ -103,7 +123,6 @@ class TimerAdapter(
                         old.isRunning == new.isRunning
             }
         })
-        // Dispatch updates
         diffResult.dispatchUpdatesTo(this)
     }
 }

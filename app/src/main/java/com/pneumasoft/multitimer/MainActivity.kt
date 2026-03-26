@@ -1,8 +1,11 @@
+// ✅ FULL FILE VERSION
+// Path: C:/local/Android/Timers/app/src/main/java/com/pneumasoft/multitimer/MainActivity.kt
+
 package com.pneumasoft.multitimer
 
-import TimerAdapter
+// 🔄 CORRECCIÓN: Import exacto de la nueva ubicación
+import com.pneumasoft.multitimer.ui.adapter.TimerAdapter
 import android.Manifest
-import android.app.AlarmManager
 import android.app.NotificationManager
 import android.content.ComponentName
 import android.content.Context
@@ -15,12 +18,14 @@ import android.os.Bundle
 import android.os.IBinder
 import android.os.PowerManager
 import android.provider.Settings
+import android.text.Editable
+import android.text.TextWatcher
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.EditText
 import android.widget.ImageButton
-import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -36,7 +41,6 @@ import com.pneumasoft.multitimer.viewmodel.TimerViewModel
 import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
-    // Properties
     private val isRunningTest: Boolean by lazy {
         try {
             Class.forName("androidx.test.espresso.Espresso")
@@ -47,39 +51,34 @@ class MainActivity : AppCompatActivity() {
     }
     private lateinit var binding: ActivityMainBinding
     private val viewModel: TimerViewModel by viewModels()
-    private val adapter =
-            TimerAdapter(
-                    onStartPauseClick = { id -> handleStartPause(id) },
-                    onResetClick = { id -> viewModel.resetTimer(id) },
-                    onEditClick = { id -> showEditTimerDialog(id) },
-                    onDeleteClick = { id -> viewModel.deleteTimer(id) }
-            )
+
+    // ✅ Ahora el compilador reconocerá TimerAdapter y los tipos (id)
+    private val adapter = TimerAdapter(
+        onStartPauseClick = { id -> handleStartPause(id) },
+        onResetClick = { id -> viewModel.resetTimer(id) },
+        onEditClick = { id -> showEditTimerDialog(id) },
+        onDeleteClick = { id -> viewModel.deleteTimer(id) }
+    )
+
     private var timerService: TimerService? = null
     private var isServiceBound = false
 
-    // Service connection
-    private val serviceConnection =
-            object : ServiceConnection {
-                override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                    val binder = service as TimerService.LocalBinder
-                    timerService = binder.getService()
-                    isServiceBound = true
-                }
+    private val serviceConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            val binder = service as TimerService.LocalBinder
+            timerService = binder.getService()
+            isServiceBound = true
+        }
+        override fun onServiceDisconnected(name: ComponentName?) {
+            isServiceBound = false
+        }
+    }
 
-                override fun onServiceDisconnected(name: ComponentName?) {
-                    isServiceBound = false
-                }
-            }
-
-    // Private helper methods - UI Setup
     private fun setupRecyclerView() {
         binding.timerRecyclerView.apply {
             layoutManager = LinearLayoutManager(this@MainActivity)
             adapter = this@MainActivity.adapter
-            // Remove any existing item decorations if present
-            if (itemDecorationCount > 0) {
-                removeItemDecorationAt(0)
-            }
+            if (itemDecorationCount > 0) removeItemDecorationAt(0)
         }
     }
 
@@ -93,53 +92,19 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    // Private helper methods - Service related
     private fun bindTimerService() {
         val serviceIntent = Intent(this, TimerService::class.java)
-
-        // First start as foreground service
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        if (Build.VERSION_CODES.O <= Build.VERSION.SDK_INT) {
             startForegroundService(serviceIntent)
         } else {
             startService(serviceIntent)
         }
-
-        // Then bind to it
         bindService(serviceIntent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
-    private fun checkAndRequestNotificationPermission() {
-        if (isRunningTest) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
-                            PackageManager.PERMISSION_GRANTED
-            ) {
-                // Request the permission
-                ActivityCompat.requestPermissions(
-                        this,
-                        arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                        NOTIFICATION_PERMISSION_CODE
-                )
-            } else {
-                // Permission already granted, safe to proceed with notifications
-                initializeTimerService()
-            }
-        } else {
-            // For lower Android versions, just initialize directly
-            initializeTimerService()
-        }
-    }
-
-    private fun initializeTimerService() {
-        // Only bind to service if permissions are granted
-        bindTimerService()
-    }
-
-    // Private helper methods - Battery optimization
     private fun getManufacturerSpecificInstructions(): String? {
         return when (Build.MANUFACTURER.lowercase()) {
-            "xiaomi", "redmi", "poco" ->
-                    "Go to Settings > Apps > Manage Apps > MultiTimer > Battery > No restrictions"
+            "xiaomi", "redmi", "poco" -> "Go to Settings > Apps > Manage Apps > MultiTimer > Battery > No restrictions"
             "huawei", "honor" -> "Go to Settings > Apps > MultiTimer > Battery > App launch"
             "samsung" -> "Go to Settings > Apps > MultiTimer > Battery > Allow background activity"
             "oppo", "oneplus", "realme" -> "Go to Settings > Battery > Background apps > MultiTimer"
@@ -156,103 +121,50 @@ class MainActivity : AppCompatActivity() {
         if (isRunningTest) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val powerManager = getSystemService(POWER_SERVICE) as PowerManager
-            val packageName = packageName
             if (!powerManager.isIgnoringBatteryOptimizations(packageName)) {
-                // Get manufacturer-specific instructions
                 val specificInstructions = getManufacturerSpecificInstructions()
+                val message = "For timers to work properly when the screen is off, please disable battery optimization.\n" +
+                        (specificInstructions?.let { "\nOn your device: $it" } ?: "")
 
-                // Create message with potential additional instructions
-                val message =
-                        "For timers to work properly when the screen is off, " +
-                                "please disable battery optimization for this app." +
-                                (specificInstructions?.let { "\n\nOn your device: $it" } ?: "")
-
-                // Show dialog with enhanced instructions
                 AlertDialog.Builder(this)
-                        .setTitle("Battery Optimization")
-                        .setMessage(message)
-                        .setPositiveButton("Settings") { _, _ ->
-                            try {
-                                val intent =
-                                        Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
-                                                .apply { data = Uri.parse("package:$packageName") }
-                                startActivity(intent)
-                            } catch (e: Exception) {
-                                // Fallback to general battery settings
-                                Toast.makeText(
-                                                this,
-                                                "Please find MultiTimer in your battery settings and disable optimization",
-                                                Toast.LENGTH_LONG
-                                        )
-                                        .show()
+                    .setTitle("Battery Optimization")
+                    .setMessage(message)
+                    .setPositiveButton("Settings") { _, _ ->
+                        try {
+                            val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                                data = Uri.parse("package:$packageName")
                             }
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            Toast.makeText(this, "Find MultiTimer in settings and disable optimization", Toast.LENGTH_LONG).show()
                         }
-                        .setNegativeButton("Later", null)
-                        .show()
-            }
-        }
-    }
-
-    private fun checkAndRequestExactAlarmPermission() {
-        if (isRunningTest) return
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            if (!alarmManager.canScheduleExactAlarms()) {
-                AlertDialog.Builder(this)
-                        .setTitle("Exact Alarm Permission")
-                        .setMessage(
-                                "Timers require exact alarm permission to function accurately. Please grant this permission in Settings."
-                        )
-                        .setPositiveButton("Settings") { _, _ ->
-                            try {
-                                val intent =
-                                        Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM).apply {
-                                            data = Uri.parse("package:$packageName")
-                                        }
-                                startActivity(intent)
-                            } catch (e: Exception) {
-                                Log.e("MainActivity", "Failed to open alarm settings", e)
-                            }
-                        }
-                        .setNegativeButton("Later", null)
-                        .show()
+                    }
+                    .setNegativeButton("Later", null)
+                    .show()
             }
         }
     }
 
     private fun checkAndRequestFullScreenIntentPermission() {
         if (isRunningTest) return
-        if (Build.VERSION.SDK_INT >= 34) { // Android 14 (UPSIDE_DOWN_CAKE)
-            val notificationManager =
-                    getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= 34) {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             if (!notificationManager.canUseFullScreenIntent()) {
                 AlertDialog.Builder(this)
-                        .setTitle("Full Screen Permission")
-                        .setMessage(
-                                "For the timer alarm to pop up when the screen is locked or in use, please allow Full Screen Intent permission."
-                        )
-                        .setPositiveButton("Settings") { _, _ ->
-                            try {
-                                val intent =
-                                        Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT)
-                                                .apply { data = Uri.parse("package:$packageName") }
-                                startActivity(intent)
-                            } catch (e: Exception) {
-                                Log.e(
-                                        "MainActivity",
-                                        "Failed to open full screen intent settings",
-                                        e
-                                )
-                                Toast.makeText(
-                                                this,
-                                                "Please allow Full Screen Intent in App Info",
-                                                Toast.LENGTH_LONG
-                                        )
-                                        .show()
+                    .setTitle("Full Screen Permission")
+                    .setMessage("Allow Full Screen Intent so the alarm can pop up while the screen is locked.")
+                    .setPositiveButton("Settings") { _, _ ->
+                        try {
+                            val intent = Intent(Settings.ACTION_MANAGE_APP_USE_FULL_SCREEN_INTENT).apply {
+                                data = Uri.parse("package:$packageName")
                             }
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "Failed to open settings", e)
                         }
-                        .setNegativeButton("Later", null)
-                        .show()
+                    }
+                    .setNegativeButton("Later", null)
+                    .show()
             }
         }
     }
@@ -261,273 +173,149 @@ class MainActivity : AppCompatActivity() {
         if (isRunningTest) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
             AlertDialog.Builder(this)
-                    .setTitle("Display Over Other Apps")
-                    .setMessage(
-                            "To ensure the alarm dialog pops up when using other apps, please allow 'Display over other apps'."
-                    )
-                    .setPositiveButton("Settings") { _, _ ->
-                        try {
-                            val intent =
-                                    Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
-                                        data = Uri.parse("package:$packageName")
-                                    }
-                            startActivity(intent)
-                        } catch (e: Exception) {
-                            Log.e("MainActivity", "Failed to open overlay settings", e)
+                .setTitle("Display Over Other Apps")
+                .setMessage("Required to show the alarm dialog while using other apps.")
+                .setPositiveButton("Settings") { _, _ ->
+                    try {
+                        val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION).apply {
+                            data = Uri.parse("package:$packageName")
                         }
+                        startActivity(intent)
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Failed to open overlay settings", e)
                     }
-                    .setNegativeButton("Later", null)
-                    .show()
+                }
+                .setNegativeButton("Later", null)
+                .show()
         }
     }
 
-    // Private helper methods - Timer operations
     private fun handleStartPause(id: String) {
         val timer = viewModel.timers.value.find { it.id == id } ?: return
-        if (timer.isRunning) {
-            viewModel.pauseTimer(id)
-        } else {
-            viewModel.startTimer(id)
-        }
+        if (timer.isRunning) viewModel.pauseTimer(id) else viewModel.startTimer(id)
     }
 
     private fun showAddTimerDialog() {
-        try {
-            // Inflate the dialog view
-            val dialogView = layoutInflater.inflate(R.layout.dialog_add_timer, null)
-
-            // Get references to the UI components
-            val nameEditText = dialogView.findViewById<EditText>(R.id.timer_name_edit)
-            val hoursValue = dialogView.findViewById<TextView>(R.id.hours_value)
-            val minutesValue = dialogView.findViewById<TextView>(R.id.minutes_value)
-            val timerDisplayText = dialogView.findViewById<TextView>(R.id.timer_display_text)
-            val hoursUpButton = dialogView.findViewById<ImageButton>(R.id.hours_up_button)
-            val hoursDownButton = dialogView.findViewById<ImageButton>(R.id.hours_down_button)
-            val minutesSlider = dialogView.findViewById<SeekBar>(R.id.minutes_slider)
-
-            // Initialize time values
-            var hours = 0
-            var minutes = 0
-
-            // Create function to update the display
-            fun updateDisplay() {
-                val formattedHours = String.format("%02d", hours)
-                val formattedMinutes = String.format("%02d", minutes)
-                timerDisplayText.text = "$formattedHours h $formattedMinutes m"
-                hoursValue.text = formattedHours
-                minutesValue.text = "$formattedMinutes minutes"
-            }
-
-            // Set up hours controls
-            hoursUpButton.setOnClickListener {
-                hours = (hours + 1) % 24 // Wrap around after 23
-                updateDisplay()
-            }
-
-            hoursDownButton.setOnClickListener {
-                hours = if (hours > 0) hours - 1 else 23 // Wrap to 23 when going below 0
-                updateDisplay()
-            }
-
-            // Set up minutes slider with SeekBar
-            minutesSlider.setOnSeekBarChangeListener(
-                    object : SeekBar.OnSeekBarChangeListener {
-                        override fun onProgressChanged(
-                                seekBar: SeekBar?,
-                                progress: Int,
-                                fromUser: Boolean
-                        ) {
-                            minutes = progress
-                            updateDisplay()
-                        }
-
-                        override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-                        override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-                    }
-            )
-            // Initial display update
-            updateDisplay()
-
-            // Create the dialog builder with proper context
-            val builder = AlertDialog.Builder(this)
-            builder.setTitle("Add New Timer")
-            builder.setView(dialogView)
-            builder.setPositiveButton("Add") { _, _ ->
-                val name = nameEditText.text.toString()
-                val totalSeconds =
-                        hours * 3600 +
-                                minutes * 60 +
-                                if (hours + minutes == 0) {
-                                    15
-                                } else {
-                                    0
-                                } // create a 15 sec timer if zero is specified
-
-                if (totalSeconds > 0) {
-                    if (name.isBlank()) {
-                        // If name is empty, use position in list as default
-                        val position = viewModel.timers.value.size + 1
-                        viewModel.addTimer("Timer $position", totalSeconds)
-                    } else {
-                        viewModel.addTimer(name, totalSeconds)
-                    }
-                } else {
-                    Toast.makeText(
-                                    this,
-                                    "Timer duration must be greater than zero",
-                                    Toast.LENGTH_SHORT
-                            )
-                            .show()
-                }
-            }
-            builder.setNegativeButton("Cancel", null)
-
-            // Create and show dialog with error handling
-            val dialog = builder.create()
-            dialog.show()
-        } catch (e: Exception) {
-            // Log the exception for debugging
-            Log.e("TimerDialog", "Error showing dialog: ${e.message}", e)
-            Toast.makeText(this, "Error creating timer dialog: ${e.message}", Toast.LENGTH_LONG)
-                    .show()
-        }
+        setupTimerDialog(null)
     }
 
     private fun showEditTimerDialog(id: String) {
-        // Find the timer to edit
         val timer = viewModel.timers.value.find { it.id == id } ?: return
-        val isRunning = timer.isRunning
+        setupTimerDialog(timer)
+    }
 
-        // Inflate the dialog view
-        val dialogView = layoutInflater.inflate(R.layout.dialog_add_timer, null)
+    private fun setupTimerDialog(existingTimer: com.pneumasoft.multitimer.model.TimerItem?) {
+        try {
+            val dialogView = layoutInflater.inflate(R.layout.dialog_add_timer, null)
+            val nameEdit = dialogView.findViewById<EditText>(R.id.timer_name_edit)
+            val displayPreview = dialogView.findViewById<TextView>(R.id.timer_display_text)
+            val hEdit = dialogView.findViewById<EditText>(R.id.hours_value)
+            val mEdit = dialogView.findViewById<EditText>(R.id.minutes_value)
+            val sEdit = dialogView.findViewById<EditText>(R.id.seconds_value)
+            val hUp = dialogView.findViewById<ImageButton>(R.id.hours_up_button)
+            val hDown = dialogView.findViewById<ImageButton>(R.id.hours_down_button)
+            val mUp = dialogView.findViewById<ImageButton>(R.id.minutes_up_button)
+            val mDown = dialogView.findViewById<ImageButton>(R.id.minutes_down_button)
+            val sUp = dialogView.findViewById<ImageButton>(R.id.seconds_up_button)
+            val sDown = dialogView.findViewById<ImageButton>(R.id.seconds_down_button)
 
-        // Get references to the UI components
-        val nameEditText = dialogView.findViewById<EditText>(R.id.timer_name_edit)
-        val hoursValue = dialogView.findViewById<TextView>(R.id.hours_value)
-        val minutesValue = dialogView.findViewById<TextView>(R.id.minutes_value)
-        val timerDisplayText = dialogView.findViewById<TextView>(R.id.timer_display_text)
-        val hoursUpButton = dialogView.findViewById<ImageButton>(R.id.hours_up_button)
-        val hoursDownButton = dialogView.findViewById<ImageButton>(R.id.hours_down_button)
-        val minutesSlider = dialogView.findViewById<SeekBar>(R.id.minutes_slider)
+            val isEditing = existingTimer != null
+            val isRunning = existingTimer?.isRunning ?: false
+            val initialSecondsTotal = if (isEditing) {
+                if (isRunning) existingTimer!!.remainingSeconds else existingTimer!!.durationSeconds
+            } else 0
 
-        // Set dialog title based on timer state
-        val dialogTitle = if (isRunning) "Edit Remaining Time" else "Edit Timer Duration"
+            var h = initialSecondsTotal / 3600
+            var m = (initialSecondsTotal % 3600) / 60
+            var s = initialSecondsTotal % 60
+            var isUpdating = false
 
-        // Extract current values - based on what we're editing
-        val totalSeconds = if (isRunning) timer.remainingSeconds else timer.durationSeconds
-        var hours = totalSeconds / 3600
-        var minutes = (totalSeconds % 3600) / 60
-        val seconds = totalSeconds % 60 // Store seconds separately
+            if (isEditing) nameEdit.setText(existingTimer!!.name)
 
-        // Pre-fill the name field
-        nameEditText.setText(timer.name)
-
-        // Create function to update the display
-        fun updateDisplay() {
-            val formattedHours = String.format("%02d", hours)
-            val formattedMinutes = String.format("%02d", minutes)
-            timerDisplayText.text = "$formattedHours h $formattedMinutes m"
-            hoursValue.text = formattedHours
-            minutesValue.text = "$formattedMinutes minutes"
-        }
-
-        hoursUpButton.setOnClickListener {
-            hours = (hours + 1) % 24
-            updateDisplay()
-        }
-
-        hoursDownButton.setOnClickListener {
-            hours = if (hours > 0) hours - 1 else 23
-            updateDisplay()
-        }
-
-        minutesSlider.progress = minutes
-        minutesSlider.setOnSeekBarChangeListener(
-                object : SeekBar.OnSeekBarChangeListener {
-                    override fun onProgressChanged(
-                            seekBar: SeekBar?,
-                            progress: Int,
-                            fromUser: Boolean
-                    ) {
-                        minutes = progress
-                        updateDisplay()
-                    }
-
-                    override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-                    override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+            fun updateUIFromVars(source: View? = null) {
+                if (isUpdating) return
+                isUpdating = true
+                try {
+                    val fmtH = String.format("%02d", h)
+                    val fmtM = String.format("%02d", m)
+                    val fmtS = String.format("%02d", s)
+                    displayPreview.text = "${fmtH}h ${fmtM}m ${fmtS}s"
+                    if (source != hEdit) hEdit.setText(fmtH)
+                    if (source != mEdit) mEdit.setText(fmtM)
+                    if (source != sEdit) sEdit.setText(fmtS)
+                } finally {
+                    isUpdating = false
                 }
-        )
+            }
 
-        // Initial display update
-        updateDisplay()
+            val textWatcher = object : TextWatcher {
+                override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+                override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+                override fun afterTextChanged(editable: Editable?) {
+                    if (isUpdating) return
+                    val valInt = editable.toString().toIntOrNull() ?: 0
+                    when {
+                        hEdit.hasFocus() -> h = valInt.coerceIn(0, 99)
+                        mEdit.hasFocus() -> m = valInt.coerceIn(0, 59)
+                        sEdit.hasFocus() -> s = valInt.coerceIn(0, 59)
+                    }
+                    updateUIFromVars(if (hEdit.hasFocus()) hEdit else if (mEdit.hasFocus()) mEdit else sEdit)
+                }
+            }
 
-        // Show the dialog
-        AlertDialog.Builder(this)
-                .setTitle(dialogTitle)
+            hEdit.addTextChangedListener(textWatcher)
+            mEdit.addTextChangedListener(textWatcher)
+            sEdit.addTextChangedListener(textWatcher)
+            hUp.setOnClickListener { h = (h + 1) % 100; updateUIFromVars() }
+            hDown.setOnClickListener { h = if (h > 0) h - 1 else 99; updateUIFromVars() }
+            mUp.setOnClickListener { m = (m + 1) % 60; updateUIFromVars() }
+            mDown.setOnClickListener { m = if (m > 0) m - 1 else 59; updateUIFromVars() }
+            sUp.setOnClickListener { s = (s + 1) % 60; updateUIFromVars() }
+            sDown.setOnClickListener { s = if (s > 0) s - 1 else 59; updateUIFromVars() }
+
+            updateUIFromVars()
+
+            AlertDialog.Builder(this)
+                .setTitle(if (isEditing) "Edit Timer" else "Add New Timer")
                 .setView(dialogView)
-                .setPositiveButton("Update") { _, _ ->
-                    val name = nameEditText.text.toString()
-                    val newTotalSeconds =
-                            hours * 3600 + minutes * 60 + (if (isRunning) seconds else 0)
-                    if (newTotalSeconds > 0) {
-                        if (name.isBlank()) {
-                            // If name is empty, use position in list
-                            val position = viewModel.timers.value.indexOf(timer) + 1
-                            viewModel.updateTimer(id, "Timer $position", newTotalSeconds, isRunning)
+                .setPositiveButton(if (isEditing) "Update" else "Add") { _, _ ->
+                    val name = nameEdit.text.toString()
+                    val total = h * 3600 + m * 60 + s
+                    if (total > 0) {
+                        if (isEditing) {
+                            viewModel.updateTimer(existingTimer!!.id, name.ifBlank { existingTimer.name }, total, isRunning)
                         } else {
-                            viewModel.updateTimer(id, name, newTotalSeconds, isRunning)
+                            viewModel.addTimer(name.ifBlank { "Timer ${viewModel.timers.value.size + 1}" }, total)
                         }
-
-                        // Inform the user what was updated
-                        val message =
-                                if (isRunning) {
-                                    "Updated remaining time for ${name.ifBlank { "Timer" }}"
-                                } else {
-                                    "Updated timer duration for ${name.ifBlank { "Timer" }}"
-                                }
-                        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-                    } else {
-                        Toast.makeText(
-                                        this,
-                                        "Timer duration must be greater than zero",
-                                        Toast.LENGTH_SHORT
-                                )
-                                .show()
                     }
                 }
                 .setNegativeButton("Cancel", null)
                 .show()
+        } catch (e: Exception) {
+            Log.e("TimerDialog", "Error: ${e.message}")
+        }
     }
 
-    // Activity lifecycle methods
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Request notification permissions for Android 13+
-        if (!isRunningTest) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (ContextCompat.checkSelfPermission(
-                                this,
-                                Manifest.permission.POST_NOTIFICATIONS
-                        ) != PackageManager.PERMISSION_GRANTED
-                ) {
-                    ActivityCompat.requestPermissions(
-                            this,
-                            arrayOf(Manifest.permission.POST_NOTIFICATIONS),
-                            NOTIFICATION_PERMISSION_CODE
-                    )
-                }
+        // ✅ Pedir permiso de notificaciones (Limpiado y sin duplicados)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                    NOTIFICATION_PERMISSION_CODE
+                )
             }
         }
 
         requestBatteryOptimizationExemption()
         checkAndRequestFullScreenIntentPermission()
         checkAndRequestOverlayPermission()
-
         setupRecyclerView()
         setupAddButton()
         observeTimers()
@@ -535,54 +323,14 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        Intent(this, TimerService::class.java).also { intent ->
-            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(Intent(this, TimerService::class.java))
-        } else {
-            startService(Intent(this, TimerService::class.java))
-        }
-    }
-
-    override fun onStop() {
-        super.onStop()
-        // Don't unbind here if you want the service to continue in the background
-        // Only unbind if you want the service to stop when the app is not visible
+        bindTimerService()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        // Properly clean up service connection
         if (isServiceBound) {
             unbindService(serviceConnection)
             isServiceBound = false
-        }
-    }
-
-    override fun onRequestPermissionsResult(
-            requestCode: Int,
-            permissions: Array<out String>,
-            grantResults: IntArray
-    ) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == NOTIFICATION_PERMISSION_CODE) {
-            if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Permission granted, initialize service
-                initializeTimerService()
-            } else {
-                // Permission denied - inform user that timers may not function properly
-                Toast.makeText(
-                                this,
-                                "Timer notifications will not work without permission. Timers may stop in background.",
-                                Toast.LENGTH_LONG
-                        )
-                        .show()
-
-                // Still initialize, but service will have limited functionality
-                initializeTimerService()
-            }
         }
     }
 
@@ -593,17 +341,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         return when (item.itemId) {
-            R.id.action_about -> {
-                // Create an Intent to navigate to AboutActivity
-                val intent = Intent(this, AboutActivity::class.java)
-                startActivity(intent)
-                true
-            }
-            R.id.action_settings -> {
-                val intent = Intent(this, SettingsActivity::class.java)
-                startActivity(intent)
-                true
-            }
+            R.id.action_about -> { startActivity(Intent(this, AboutActivity::class.java)); true }
+            R.id.action_settings -> { startActivity(Intent(this, SettingsActivity::class.java)); true }
             else -> super.onOptionsItemSelected(item)
         }
     }
